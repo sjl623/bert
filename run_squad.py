@@ -762,6 +762,8 @@ def write_predictions(all_examples, all_features, all_results, n_best_size,
   scores_diff_json = collections.OrderedDict()
 
   for (example_index, example) in enumerate(all_examples):
+    if example_index%100==0:
+        print("Processing:%d:%d"%(example_index,len(example))
     features = example_index_to_features[example_index]
 
     prelim_predictions = []
