@@ -263,7 +263,7 @@ def read_squad_examples(input_file, is_training):
 
           if FLAGS.version_2_with_negative:
             is_impossible = qa["is_impossible"]
-          if (len(qa["answers"]) != 1) and (not is_impossible):
+          if (len(qa["answers"]) < 1) and (not is_impossible):
             raise ValueError(
                 "For training, each question should have exactly 1 answer.")
           if not is_impossible:
@@ -272,8 +272,8 @@ def read_squad_examples(input_file, is_training):
             answer_offset = answer["answer_start"]
             answer_length = len(orig_answer_text)
             start_position = char_to_word_offset[answer_offset]
-            end_position = char_to_word_offset[answer_offset + answer_length -
-                                               1]
+            end_position = char_to_word_offset[min(len(char_to_word_offset)-1,answer_offset + answer_length -
+                                               1)]
             # Only add answers where the text can be exactly recovered from the
             # document. If this CAN'T happen it's likely due to weird Unicode
             # stuff so we will just skip the example.
@@ -762,8 +762,6 @@ def write_predictions(all_examples, all_features, all_results, n_best_size,
   scores_diff_json = collections.OrderedDict()
 
   for (example_index, example) in enumerate(all_examples):
-    if example_index%100==0:
-        print("Processing:%d:%d"%(example_index,len(example))
     features = example_index_to_features[example_index]
 
     prelim_predictions = []
@@ -1189,18 +1187,18 @@ def main(_):
   if FLAGS.do_train:
     # We write to a temporary file to avoid storing very large constant tensors
     # in memory.
-    train_writer = FeatureWriter(
-        filename=os.path.join(FLAGS.output_dir, "train.tf_record"),
-        is_training=True)
-    convert_examples_to_features(
-        examples=train_examples,
-        tokenizer=tokenizer,
-        max_seq_length=FLAGS.max_seq_length,
-        doc_stride=FLAGS.doc_stride,
-        max_query_length=FLAGS.max_query_length,
-        is_training=True,
-        output_fn=train_writer.process_feature)
-    train_writer.close()
+    # train_writer = FeatureWriter(
+    #     filename=os.path.join(FLAGS.output_dir, "train.tf_record"),
+    #     is_training=True)
+    # convert_examples_to_features(
+    #     examples=train_examples,
+    #     tokenizer=tokenizer,
+    #     max_seq_length=FLAGS.max_seq_length,
+    #     doc_stride=FLAGS.doc_stride,
+    #     max_query_length=FLAGS.max_query_length,
+    #     is_training=True,
+    #     output_fn=train_writer.process_feature)
+    # train_writer.close()
 
     tf.logging.info("***** Running training *****")
     tf.logging.info("  Num orig examples = %d", len(train_examples))
@@ -1210,7 +1208,7 @@ def main(_):
     del train_examples
 
     train_input_fn = input_fn_builder(
-        input_file=train_writer.filename,
+        input_file=os.path.join(FLAGS.output_dir, "train.tf_record"),
         seq_length=FLAGS.max_seq_length,
         is_training=True,
         drop_remainder=True)
